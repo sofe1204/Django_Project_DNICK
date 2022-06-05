@@ -1,5 +1,5 @@
 from django.contrib import admin
-from BlogPost.models import user, BlogPost, Commentar
+from BlogPost.models import user, BlogPost, Commentar,Block
 from rangefilter.filters import DateRangeFilter, DateTimeRangeFilter
 
 # Register your models here.
@@ -15,7 +15,12 @@ class userAdmin(admin.ModelAdmin):
         return True
 admin.site.register(user, userAdmin)
 
+class BlockAdmin(admin.ModelAdmin):
+    pass
+admin.site.register(Block,BlockAdmin)
+
 class CommentarAdmin(admin.StackedInline):
+    list_display = ['comm_content', ]
     model = Commentar
     extra = 0
 
@@ -23,7 +28,12 @@ class CommentarAdmin(admin.StackedInline):
         return True
 
     def has_change_permission(self, request, obj=None):
-        if obj and (request.user == obj.author):
+        if obj is not None and ((request.user == obj.com_author) or (request.user == obj.post.author)):
+            return True
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and ((request.user == obj.com_author) or (request.user == obj.post.author)):
             return True
         return False
 
@@ -40,12 +50,17 @@ class BlogPostAdmin(admin.ModelAdmin):
         obj.author = request.user
         super().save_model(request, obj, form, change)
 
-    def has_add_permission(self, request):
-        return True
+    # def has_add_permission(self, request):
+    #     return True
 
     def has_view_permission(self, request, obj=None):
         #Block.objects.add_block(request.user, obj.user)
         return True
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and (request.user == obj.author):
+            return True
+        return False
 
     def has_change_permission(self, request, obj=None):
         if obj and (request.user == obj.author):
